@@ -1,0 +1,149 @@
+﻿using Microsoft.EntityFrameworkCore;
+using FitnessCenter1.Context;
+using FitnessCenter1.Entities;
+using FitnessCenter1.Services.Abstract;
+
+namespace FitnessCenter1.Services
+{
+    public class UserService : BaseService, IUserService
+    {
+        private readonly IEmailService _emailService;
+
+        public UserService(FitnessCenterDbContext context, IEmailService emailService) : base(context)
+        {
+            _emailService = emailService;
+        }
+
+        public async Task<User> RegisterUser(string name, string surname, string username, string password, string email, string gender, bool isCar, decimal initialMoney)
+        {
+            if (await _context.Users.AnyAsync(u => u.Username == username))
+                throw new Exception("Username already exists");
+
+            if (await _context.Users.AnyAsync(u => u.Email == email))
+                throw new Exception("Email already exists");
+
+            if (gender != "Male" && gender != "Female")
+                throw new Exception("Gender must be either Male or Female");
+
+            string passwordHash = BCrypt.Net.BCrypt.HashPassword(password);
+            string otp = GenerateOTP();
+
+            var user = new User
+            {
+                Name = name,
+                Surname = surname,
+                Username = username,
+                PasswordHash = passwordHash,
+                Email = email,
+                Gender = gender,
+                IsCar = isCar,
+                Money = initialMoney,
+                OTP = otp,
+                OTPExpiry = DateTime.Now.AddMinutes(10)
+            };
+
+            _context.Users.Add(user);
+            await _context.SaveChangesAsync();
+
+            await _emailService.SendRegistrationEmail(email, name);
+            await _emailService.SendOTPEmail(email, otp);
+
+            return user;
+        }
+
+        public async Task<User> LoginUser(string username, string password)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+            if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
+                throw new Exception("Invalid username or password");
+
+            if (user.HasEnteredGymToday && user.LastGymEntryDate?.Date == DateTime.Today)
+                throw new Exception("You can only enter the gym once per day according to our privacy policy");
+
+            user.HasEnteredGymToday = true;
+            user.LastGymEntryDate = DateTime.Now;
+            await _context.SaveChangesAsync();
+
+            return user;
+        }
+
+        public async Task<bool> ForgotPassword(string email)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+            if (user == null) return true;
+
+            string otp = GenerateOTP();
+            user.OTP = otp;
+            user.OTPExpiry = DateTime.Now.AddMinutes(10);
+
+            await _context.SaveChangesAsync();
+            await _emailService.SendOTPEmail(email, otp);
+
+            return true;
+        }
+
+        public async Task<bool> VerifyOTP(string email, string otp)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+            if (user == null || user.OTP != otp || user.OTPExpiry < DateTime.Now)
+                return false;
+
+            return true;
+        }
+
+        public async Task<bool> ResetPassword(string email, string newPassword)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+            if (user == null) return false;
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            user.OTP = null;
+            user.OTPExpiry = null;
+
+            await _context.SaveChangesAsync();
+            await _emailService.SendPasswordResetEmail(email);
+
+            return true;
+        }
+
+        public async Task<User> GetUserById(int userId)
+        {
+            return await _context.Users.FindAsync(userId);
+        }
+
+        public async Task<List<User>> GetAllUsers()
+        {
+            return await _context.Users.ToListAsync();
+        }
+
+        public async Task<bool> UpdateUser(User user)
+        {
+            _context.Users.Update(user);
+            return await _context.SaveChangesAsync() > 0;
+        }
+
+        public async Task<bool> DeleteUser(int userId)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return false;
+
+            _context.Users.Remove(user);
+            return await _context.SaveChangesAsync() > 0;
+        }
+
+        public async Task<bool> AddMoney(int userId, decimal amount)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return false;
+
+            user.Money += amount;
+            return await _context.SaveChangesAsync() > 0;
+        }
+
+        private string GenerateOTP()
+        {
+            Random random = new Random();
+            return random.Next(100000, 999999).ToString();
+        }
+    }
+}
