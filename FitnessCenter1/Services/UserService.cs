@@ -38,6 +38,7 @@ namespace FitnessCenter1.Services
                 Gender = gender,
                 IsCar = isCar,
                 Money = initialMoney,
+                HasEnteredGymToday = false,
                 OTP = otp,
                 OTPExpiry = DateTime.Now.AddMinutes(10)
             };
@@ -57,20 +58,13 @@ namespace FitnessCenter1.Services
             if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
                 throw new Exception("Invalid username or password");
 
-            if (user.HasEnteredGymToday && user.LastGymEntryDate?.Date == DateTime.Today)
-                throw new Exception("You can only enter the gym once per day according to our privacy policy");
-
-            user.HasEnteredGymToday = true;
-            user.LastGymEntryDate = DateTime.Now;
-            await _context.SaveChangesAsync();
-
             return user;
         }
 
         public async Task<bool> ForgotPassword(string email)
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
-            if (user == null) return true;
+            if (user == null) return false;
 
             string otp = GenerateOTP();
             user.OTP = otp;
@@ -137,6 +131,77 @@ namespace FitnessCenter1.Services
             if (user == null) return false;
 
             user.Money += amount;
+            return await _context.SaveChangesAsync() > 0;
+        }
+
+        public async Task<bool> UpdateUserProfile(int userId, string name, string surname, string email, string gender, bool isCar)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return false;
+
+            user.Name = name;
+            user.Surname = surname;
+            user.Email = email;
+            user.Gender = gender;
+            user.IsCar = isCar;
+
+            return await _context.SaveChangesAsync() > 0;
+        }
+
+        public async Task<bool> ChangePassword(int userId, string currentPassword, string newPassword)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null || !BCrypt.Net.BCrypt.Verify(currentPassword, user.PasswordHash))
+                return false;
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            return await _context.SaveChangesAsync() > 0;
+        }
+
+        public async Task<User> GetUserByEmail(string email)
+        {
+            return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+        }
+
+        public async Task<User> GetUserByUsername(string username)
+        {
+            return await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+        }
+
+        public async Task<int> GetTotalUsersCount()
+        {
+            return await _context.Users.CountAsync();
+        }
+
+        public async Task<List<User>> GetUsersByGender(string gender)
+        {
+            return await _context.Users
+                .Where(u => u.Gender == gender)
+                .ToListAsync();
+        }
+
+        public async Task<bool> CheckUsernameExists(string username)
+        {
+            return await _context.Users.AnyAsync(u => u.Username == username);
+        }
+
+        public async Task<bool> CheckEmailExists(string email)
+        {
+            return await _context.Users.AnyAsync(u => u.Email == email);
+        }
+
+        public async Task<decimal> GetUserBalance(int userId)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            return user?.Money ?? 0;
+        }
+
+        public async Task<bool> DeductMoney(int userId, decimal amount)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null || user.Money < amount) return false;
+
+            user.Money -= amount;
             return await _context.SaveChangesAsync() > 0;
         }
 

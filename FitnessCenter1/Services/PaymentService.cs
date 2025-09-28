@@ -3,7 +3,7 @@ using FitnessCenter1.Context;
 using FitnessCenter1.Entities;
 using FitnessCenter1.Services.Abstract;
 
-namespace FitnessCenter1.Services.Implementations
+namespace FitnessCenter1.Services
 {
     public class PaymentService : BaseService, IPaymentService
     {
@@ -12,10 +12,6 @@ namespace FitnessCenter1.Services.Implementations
         public PaymentService(FitnessCenterDbContext context, IEmailService emailService) : base(context)
         {
             _emailService = emailService;
-        }
-
-        public PaymentService(FitnessCenterDbContext context) : base(context)
-        {
         }
 
         public async Task<Payment> CreatePayment(int userId, string paymentType, decimal amount, string description)
@@ -41,10 +37,15 @@ namespace FitnessCenter1.Services.Implementations
 
         public async Task<bool> ProcessPayment(int paymentId)
         {
-            var payment = await _context.Payments.FindAsync(paymentId);
+            var payment = await _context.Payments
+                .Include(p => p.User)
+                .FirstOrDefaultAsync(p => p.PaymentId == paymentId);
+
             if (payment == null) return false;
 
-            var user = await _context.Users.FindAsync(payment.UserId);
+            var user = payment.User;
+            if (user == null) return false;
+
             if (user.Money < payment.Amount)
             {
                 payment.Status = "Failed";
@@ -56,13 +57,25 @@ namespace FitnessCenter1.Services.Implementations
             payment.Status = "Completed";
             payment.PaymentDate = DateTime.Now;
 
-            string paymentDetails = $"Amount: {payment.Amount:C}\n" +
-                                  $"Type: {payment.PaymentType}\n" +
-                                  $"Date: {payment.PaymentDate:yyyy-MM-dd HH:mm}";
+            await _context.SaveChangesAsync();
 
-            await _emailService.SendPaymentConfirmationEmail(user.Email, paymentDetails);
+            try
+            {
+                string paymentDetails = $"Amount: {payment.Amount:C}\n" +
+                                      $"Type: {payment.PaymentType}\n" +
+                                      $"Date: {payment.PaymentDate:yyyy-MM-dd HH:mm}";
 
-            return await _context.SaveChangesAsync() > 0;
+                if (!string.IsNullOrEmpty(user.Email))
+                {
+                    await _emailService.SendPaymentConfirmationEmail(user.Email, paymentDetails);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Email sending failed: {ex.Message}");
+            }
+
+            return true;
         }
 
         public async Task<bool> CancelPayment(int paymentId)
@@ -86,6 +99,7 @@ namespace FitnessCenter1.Services.Implementations
             return await _context.Payments
                 .Where(p => p.UserId == userId)
                 .Include(p => p.User)
+                .OrderByDescending(p => p.PaymentDate)
                 .ToListAsync();
         }
 
@@ -93,6 +107,7 @@ namespace FitnessCenter1.Services.Implementations
         {
             return await _context.Payments
                 .Include(p => p.User)
+                .OrderByDescending(p => p.PaymentDate)
                 .ToListAsync();
         }
 

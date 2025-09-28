@@ -1,27 +1,21 @@
 ﻿using System;
 using System.Net;
 using System.Net.Mail;
+using System.Threading.Tasks;
 using FitnessCenter1.Services.Abstract;
 
 namespace FitnessCenter1.Services
 {
     public class EmailService : IEmailService
     {
-        private readonly string _smtpServer;
-        private readonly int _smtpPort;
-        private readonly string _smtpUsername;
-        private readonly string _smtpPassword;
-        private readonly bool _enableSsl;
+        private readonly string _smtpServer = "smtp.gmail.com";
+        private readonly int _smtpPort = 587;
+        private readonly string _smtpUsername = "abbaseli.sixelizade.2010@gmail.com";
+        private readonly string _smtpPassword = "twaz vxxe kteo dnre";
+        private readonly bool _enableSsl = true;
 
-
-
-        public EmailService(string smtpServer, int smtpPort, string smtpUsername, string smtpPassword, bool enableSsl = true)
+        public EmailService()
         {
-            _smtpServer = smtpServer;
-            _smtpPort = smtpPort;
-            _smtpUsername = smtpUsername;
-            _smtpPassword = smtpPassword;
-            _enableSsl = enableSsl;
         }
 
         public async Task SendRegistrationEmail(string email, string name)
@@ -30,7 +24,7 @@ namespace FitnessCenter1.Services
             string body = $@"
 Salam {name},
 
-Fitness Center'a qeydiyyatınız uğurla tamamlandı. Xidmətlərimizdən yüksək səmərələ ilə istifadə etməyinizə şərait yaratmaq üçün buradayıq.
+Fitness Center'a qeydiyyatınız uğurla tamamlandı. Xidmətlərimizdən yüksək səmərə ilə istifadə etməyinizə şərait yaratmaq üçün buradayıq.
 
 Hörmətlə,
 Fitness Center Komandası
@@ -41,9 +35,9 @@ Fitness Center Komandası
 
         public async Task SendOTPEmail(string email, string otp)
         {
-            string subject = "Fitness Center - Təhlüsəlik Kodu";
+            string subject = "Fitness Center - Təhlükəsizlik Kodu";
             string body = $@"
-Təhlüsəlik kodunuz: {otp}
+Təhlükəsizlik kodunuz: {otp}
 
 Bu kodu 10 dəqiqə ərzində istifadə edin. Kodun təhlükəsizliyini qoruyun və heç kimlə paylaşmayın.
 
@@ -143,6 +137,7 @@ Fitness Center Komandası
             catch (Exception ex)
             {
                 Console.WriteLine($"Failed to send email to {toEmail}: {ex.Message}");
+                // Email göndərmə xətası baş versə də, proqramın davam etməsinə icazə ver
             }
         }
     }

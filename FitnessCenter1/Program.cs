@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using FitnessCenter1.Services.Implementations;
 using FitnessCenter1.Context;
 using FitnessCenter1.Entities;
 using FitnessCenter1.Services.Abstract;
@@ -11,53 +10,57 @@ class Program
 {
     static async Task Main(string[] args)
     {
-        const string smtpServer = "smtp.gmail.com";
-        const int smtpPort = 587;
-        const string smtpUsername = "abbaseli.sixelizade.2010@gmail.com";
-        const string smtpPassword = "twaz vxxe kteo dnre";
-        const bool enableSsl = true;
-
         using (var context = new FitnessCenterDbContext())
         {
             await Datas(context);
 
-            var emailService = new EmailService(smtpServer, smtpPort, smtpUsername, smtpPassword, enableSsl);
+            var emailService = new EmailService();
+            var notificationService = new NotificationService(context);
             var userService = new UserService(context, emailService);
             var parkingService = new ParkingService(context);
-            var restaurantService = new RestaurantService(context);
-            var fitnessService = new FitnessService(context);
+            var restaurantService = new RestaurantService(context, emailService);
+            var fitnessService = new FitnessService(context, emailService, notificationService);
             var trainerService = new TrainerService(context);
-            var membershipService = new MembershipService(context);
-            var paymentService = new PaymentService(context);
+            var membershipService = new MembershipService(context, emailService);
+            var paymentService = new PaymentService(context, emailService);
             var equipmentService = new EquipmentService(context);
             var equipmentUsageService = new EquipmentUsageService(context);
-            var notificationService = new NotificationService(context);
 
-            await RunApplication(userService, parkingService, restaurantService, fitnessService, trainerService, membershipService, paymentService, equipmentService, equipmentUsageService, notificationService);
+            await RunApplication(userService, parkingService, restaurantService, fitnessService,
+                               trainerService, membershipService, paymentService, equipmentService,
+                               equipmentUsageService, notificationService);
         }
     }
 
     static async Task Datas(FitnessCenterDbContext context)
     {
-        context.FitnessPrograms.AddRange(new[]
+        if (!await context.FitnessPrograms.AnyAsync(fp => fp.GenderTarget == "Male"))
         {
+            context.FitnessPrograms.AddRange(new[]
+            {
                 new FitnessProgram { Name = "Sauna", Description = "Relaxing sauna session", Price = 60, GenderTarget = "Male" },
                 new FitnessProgram { Name = "Jacuzzi", Description = "Relaxation with Jacuzzi", Price = 40, GenderTarget = "Male" },
                 new FitnessProgram { Name = "Fitness", Description = "Workout in fitness area", Price = 30, GenderTarget = "Male" },
                 new FitnessProgram { Name = "Massage room", Description = "Professional massage", Price = 80, GenderTarget = "Male" }
             });
+        }
 
-        context.FitnessPrograms.AddRange(new[]
+        if (!await context.FitnessPrograms.AnyAsync(fp => fp.GenderTarget == "Female"))
         {
+            context.FitnessPrograms.AddRange(new[]
+            {
                 new FitnessProgram { Name = "Pilates", Description = "Pilates class", Price = 35, GenderTarget = "Female" },
                 new FitnessProgram { Name = "Yoga", Description = "Yoga session", Price = 30, GenderTarget = "Female" },
                 new FitnessProgram { Name = "Gym", Description = "Main gym access", Price = 25, GenderTarget = "Female" },
                 new FitnessProgram { Name = "Jacuzzi", Description = "Relaxation with Jacuzzi", Price = 40, GenderTarget = "Female" },
                 new FitnessProgram { Name = "Swimming pool", Description = "Swimming pool access", Price = 20, GenderTarget = "Female" }
             });
+        }
 
-        context.RestaurantMenus.AddRange(new[]
+        if (!await context.RestaurantMenus.AnyAsync())
         {
+            context.RestaurantMenus.AddRange(new[]
+            {
                 new RestaurantMenu { Name = "Steak", Description = "Grilled steak with vegetables", Price = 25, Category = "Male" },
                 new RestaurantMenu { Name = "Protein drink", Description = "High protein drink", Price = 8, Category = "Male" },
                 new RestaurantMenu { Name = "Salad", Description = "Fresh garden salad", Price = 12, Category = "Female" },
@@ -66,42 +69,54 @@ class Program
                 new RestaurantMenu { Name = "Tea", Description = "Herbal tea", Price = 3, Category = "Both" },
                 new RestaurantMenu { Name = "Jam", Description = "Traditional jam", Price = 6, Category = "Both", IsSpecialOffer = true, SpecialOfferPrice = 4 }
             });
+        }
 
-        context.ParkingAreas.AddRange(new[]
+        if (!await context.ParkingAreas.AnyAsync())
         {
+            context.ParkingAreas.AddRange(new[]
+            {
                 new ParkingArea { Name = "Main Parking", TotalSpots = 50, AvailableSpots = 50 },
                 new ParkingArea { Name = "VIP Parking", TotalSpots = 10, AvailableSpots = 10 }
             });
+        }
 
-        context.Trainers.AddRange(new[]
+        if (!await context.Trainers.AnyAsync())
         {
+            context.Trainers.AddRange(new[]
+            {
                 new Trainer { Name = "John", Surname = "Smith", Specialization = "Bodybuilding", HourlyRate = 50, IsAvailable = true },
                 new Trainer { Name = "Emma", Surname = "Johnson", Specialization = "Yoga", HourlyRate = 40, IsAvailable = true }
             });
+        }
 
-        context.Equipment.AddRange(new[]
+        if (!await context.Equipment.AnyAsync())
         {
+            context.Equipment.AddRange(new[]
+            {
                 new Equipment { Name = "Treadmill", Description = "Professional treadmill", Quantity = 10, AvailableQuantity = 10, Category = "Cardio", PurchaseDate = DateTime.Now.AddMonths(-6) },
                 new Equipment { Name = "Dumbbell set", Description = "5-50kg dumbbell set", Quantity = 5, AvailableQuantity = 5, Category = "Strength", PurchaseDate = DateTime.Now.AddMonths(-3) },
                 new Equipment { Name = "Yoga mat", Description = "Premium yoga mat", Quantity = 20, AvailableQuantity = 20, Category = "Yoga", PurchaseDate = DateTime.Now.AddMonths(-1) }
             });
+        }
 
         await context.SaveChangesAsync();
     }
 
     static async Task RunApplication(IUserService userService, IParkingService parkingService,
-                                   IRestaurantService restaurantService, IFitnessService fitnessService,
-                                   ITrainerService trainerService, IMembershipService membershipService,
-                                   IPaymentService paymentService, IEquipmentService equipmentService,
-                                   IEquipmentUsageService equipmentUsageService, INotificationService notificationService)
+                               IRestaurantService restaurantService, IFitnessService fitnessService,
+                               ITrainerService trainerService, IMembershipService membershipService,
+                               IPaymentService paymentService, IEquipmentService equipmentService,
+                               IEquipmentUsageService equipmentUsageService, INotificationService notificationService)
     {
         while (true)
         {
+            Console.Clear();
             Console.WriteLine("Fitness Center Management System");
             Console.WriteLine("=================================");
             Console.WriteLine("\n1. Login");
             Console.WriteLine("2. Register");
-            Console.WriteLine("3. Exit");
+            Console.WriteLine("3. Forgot Password");
+            Console.WriteLine("4. Exit");
             Console.Write("Select: ");
 
             var choice = Console.ReadLine();
@@ -117,16 +132,68 @@ class Program
                     await HandleRegistration(userService);
                     break;
                 case "3":
+                    await HandleForgotPassword(userService);
+                    break;
+                case "4":
                     Console.WriteLine("Exiting system...");
                     Thread.Sleep(1000);
                     return;
                 default:
                     Console.WriteLine("Wrong choice. Try again.");
                     Thread.Sleep(1500);
-                    Console.Clear();
                     break;
             }
         }
+    }
+
+    static async Task HandleForgotPassword(IUserService userService)
+    {
+        Console.Clear();
+        Console.WriteLine("=== Forgot Password ===");
+        Console.Write("Enter your email: ");
+        var email = Console.ReadLine();
+
+        try
+        {
+            var success = await userService.ForgotPassword(email);
+            if (success)
+            {
+                Console.WriteLine("\nOTP code sent to your email.");
+
+                Console.Write("Enter OTP: ");
+                string enteredOtp = Console.ReadLine();
+
+                if (await userService.VerifyOTP(email, enteredOtp))
+                {
+                    Console.Write("Enter new password: ");
+                    string newPassword = Console.ReadLine();
+
+                    var resetSuccess = await userService.ResetPassword(email, newPassword);
+                    if (resetSuccess)
+                    {
+                        Console.WriteLine("\nPassword reset successfully!");
+                    }
+                    else
+                    {
+                        Console.WriteLine("\nPassword reset failed.");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("\nInvalid OTP. Password reset failed.");
+                }
+            }
+            else
+            {
+                Console.WriteLine("\nEmail not found or password reset failed.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"\nError: {ex.Message}");
+        }
+
+        Thread.Sleep(2500);
     }
 
     static async Task HandleLogin(IUserService userService, IParkingService parkingService,
@@ -166,7 +233,6 @@ class Program
         {
             Console.WriteLine($"\nLogin failed: {ex.Message}");
             Thread.Sleep(2000);
-            Console.Clear();
         }
     }
 
@@ -195,34 +261,29 @@ class Program
         {
             var user = await userService.RegisterUser(name, surname, username, password, email, gender, isCar, initialMoney);
 
-            Console.WriteLine($"\nOTP kodu email ünvanınıza göndərildi.");
+            Console.WriteLine($"\nOTP code has benn sent succesfully to your email.");
 
-            Console.Write("OTP-ni daxil edin: ");
+            Console.Write("Enter OTP verification code : ");
             string enteredOtp = Console.ReadLine();
 
-            if (enteredOtp == user.OTP)
+            if (await userService.VerifyOTP(email, enteredOtp))
             {
-                Console.WriteLine("\nQeydiyyat uğurla tamamlandı!");
+                Console.WriteLine("\nRegistration successful!");
             }
             else
             {
-                Console.WriteLine("\nOTP düzgün deyil! Qeydiyyat ləğv olundu.");
-
+                Console.WriteLine("\nOTP is incorrect! Registration cancelled.");
                 await userService.DeleteUser(user.UserId);
             }
 
             Thread.Sleep(2500);
-            Console.Clear();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"\nRegistration error: {ex.Message}");
             Thread.Sleep(2000);
-            Console.Clear();
         }
     }
-
-
 
     static async Task ShowMaleServices(User user, IFitnessService fitnessService, IRestaurantService restaurantService,
                                      IParkingService parkingService, ITrainerService trainerService,
@@ -247,16 +308,39 @@ class Program
             Console.WriteLine("11. Equipment");
             Console.WriteLine("12. Notifications");
             Console.WriteLine("13. Exit");
-
+            Console.Write("Ente your choice :");
             var choice = Console.ReadLine();
 
             switch (choice)
             {
                 case "1":
+                    Console.WriteLine("nSauna using...");
+                    Thread.Sleep(2);
+                    Console.Clear();
+                    Console.WriteLine("\nSauna used successfully!");
+                    await UseFitnessProgram(user, 1, fitnessService);
+                    break;
+
                 case "2":
+                    Console.WriteLine("Jacuzzi using...");
+                    Thread.Sleep(2);
+                    Console.Clear();
+                    Console.WriteLine("\nJacuzzi used successfully!");
+                    await UseFitnessProgram(user, 2, fitnessService);
+                    break;
                 case "3":
+                    Console.WriteLine("Fitness using...");
+                    Thread.Sleep(2);
+                    Console.Clear();
+                    Console.WriteLine("\nFitness used successfully!");
+                    await UseFitnessProgram(user, 3, fitnessService);
+                    break;
                 case "4":
-                    await UseFitnessProgram(user, int.Parse(choice), fitnessService);
+                    Console.WriteLine("Massage room using...");
+                    Thread.Sleep(2);
+                    Console.Clear();
+                    Console.WriteLine("\nMassage room used successfully!");
+                    await UseFitnessProgram(user, 4, fitnessService);
                     break;
                 case "5":
                     await ShowRestaurantMenu(user, restaurantService, "Male");
@@ -285,7 +369,6 @@ class Program
                 case "13":
                     Console.WriteLine("Exiting...");
                     Thread.Sleep(1000);
-                    Console.Clear();
                     return;
                 default:
                     Console.WriteLine("Wrong choice.");
@@ -319,17 +402,46 @@ class Program
             Console.WriteLine("12. Equipment");
             Console.WriteLine("13. Notifications");
             Console.WriteLine("14. Exit");
+            Console.Write("Ente your choice :");
 
             var choice = Console.ReadLine();
 
             switch (choice)
             {
                 case "1":
+                    Console.WriteLine("Pilates using...");
+                    Thread.Sleep(2);
+                    Console.Clear();
+                    Console.WriteLine("\nPilates used successfully!");
+                    await UseFitnessProgram(user, 1, fitnessService);
+                    break;
                 case "2":
+                    Console.WriteLine("Yoga using...");
+                    Thread.Sleep(2);
+                    Console.Clear();
+                    Console.WriteLine("\nYoga used successfully!");
+                    await UseFitnessProgram(user, 2, fitnessService);
+                    break;
                 case "3":
+                    Console.WriteLine("Gym using...");
+                    Thread.Sleep(2);
+                    Console.Clear();
+                    Console.WriteLine("\nGym used successfully!");
+                    await UseFitnessProgram(user, 3, fitnessService);
+                    break;
                 case "4":
+                    Console.WriteLine("Swimming pool using...");
+                    Thread.Sleep(2);
+                    Console.Clear();
+                    Console.WriteLine("\nJacuzzi used successfully!");
+                    await UseFitnessProgram(user, 4, fitnessService);
+                    break;
                 case "5":
-                    await UseFitnessProgram(user, int.Parse(choice), fitnessService);
+                    Console.WriteLine("");
+                    Thread.Sleep(2);
+                    Console.Clear();
+                    Console.WriteLine("\nSwimming pool used successfully!");
+                    await UseFitnessProgram(user, 5, fitnessService);
                     break;
                 case "6":
                     await ShowRestaurantMenu(user, restaurantService, "Female");
@@ -358,7 +470,6 @@ class Program
                 case "14":
                     Console.WriteLine("Exiting...");
                     Thread.Sleep(1000);
-                    Console.Clear();
                     return;
                 default:
                     Console.WriteLine("Wrong choice.");
@@ -373,14 +484,11 @@ class Program
         try
         {
             var usage = await fitnessService.UseFitnessService(user.UserId, programId);
-            Console.WriteLine($"\nProgram used successfully. Remaining balance: {user.Money:C}");
+            Thread.Sleep(2000);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"\nCould not use program: {ex.Message}");
-        }
-        finally
-        {
+            Console.WriteLine($"\nProgram cannot be used: {ex.Message}");
             Thread.Sleep(2000);
         }
     }
@@ -425,8 +533,8 @@ class Program
     {
         if (!user.IsCar)
         {
-            Console.WriteLine("\nYou don't have a registered car.");
-            Thread.Sleep(1500);
+            Console.WriteLine("\nYou don't have a registered car. Parking reservation is only available for users with cars.");
+            Thread.Sleep(2000);
             return;
         }
 
@@ -466,7 +574,6 @@ class Program
         }
         Thread.Sleep(2000);
     }
-
     static async Task HandleTrainerSession(User user, ITrainerService trainerService)
     {
         Console.Clear();
@@ -490,7 +597,7 @@ class Program
         Console.Write("\nSelect trainer (0 to cancel): ");
         if (int.TryParse(Console.ReadLine(), out int choice) && choice > 0 && choice <= availableTrainers.Count)
         {
-            Console.Write("Session date and time (year-month-day hour:minute): ");
+            Console.Write("Session date and time (yyyy-MM-dd): ");
             if (DateTime.TryParse(Console.ReadLine(), out DateTime sessionTime))
             {
                 Console.Write("Duration (minutes): ");
@@ -538,6 +645,7 @@ class Program
         {
             if (choice <= fitnessOffers.Count)
             {
+                Console.WriteLine($"\n{fitnessOffers[choice - 1].Name} succesfully used!");
                 await UseFitnessProgram(user, fitnessOffers[choice - 1].FitnessProgramId, fitnessService);
             }
             else
@@ -585,7 +693,7 @@ class Program
                 {
                     var startDate = DateTime.Now;
                     var endDate = startDate.AddDays(days);
-                    var price = days * 10; // 10 AZN/day
+                    var price = days * 10;
 
                     try
                     {

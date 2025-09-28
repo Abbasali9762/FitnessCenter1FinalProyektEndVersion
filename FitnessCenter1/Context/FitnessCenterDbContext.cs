@@ -12,7 +12,7 @@ namespace FitnessCenter1.Context
         {
             if (!optionsBuilder.IsConfigured)
             {
-                optionsBuilder.UseSqlServer("Data Source=LAPTOP-1QHMBOUE;Initial Catalog=FittNessCenterDatabase;Integrated Security=True;Connect Timeout=30;Encrypt=True;Trust Server Certificate=True",
+                optionsBuilder.UseSqlServer("Data Source=LAPTOP-1QHMBOUE;Initial Catalog=dbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb;Integrated Security=True;Connect Timeout=30;Encrypt=True;Trust Server Certificate=True",
                     options => options.EnableRetryOnFailure()
                 );
             }

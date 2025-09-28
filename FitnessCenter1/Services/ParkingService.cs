@@ -17,7 +17,7 @@ namespace FitnessCenter1.Services
             if (parkingArea == null)
                 throw new Exception("Parking area not found");
 
-            if (!parkingArea.IsEmpty)
+            if (parkingArea.AvailableSpots <= 0)
                 throw new Exception("Parking area is full");
 
             var user = await _context.Users.FindAsync(userId);
@@ -25,7 +25,7 @@ namespace FitnessCenter1.Services
                 throw new Exception("User not found");
 
             if (!user.IsCar)
-                throw new Exception("User doesn't have a car");
+                throw new Exception("You don't have a registered car. Parking reservation is only available for users with cars.");
 
             var reservation = new ParkingReservation
             {
@@ -60,7 +60,7 @@ namespace FitnessCenter1.Services
         public async Task<List<ParkingArea>> GetAvailableParkingAreas()
         {
             return await _context.ParkingAreas
-                .Where(pa => pa.IsEmpty)
+                .Where(pa => pa.AvailableSpots > 0)
                 .ToListAsync();
         }
 

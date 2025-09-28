@@ -1,4 +1,6 @@
-﻿namespace FitnessCenter1.Entities
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace FitnessCenter1.Entities
 {
     public class ParkingArea
     {
@@ -6,6 +8,7 @@
         public string? Name { get; set; }
         public int TotalSpots { get; set; }
         public int AvailableSpots { get; set; }
+        [NotMapped]
         public bool IsEmpty => AvailableSpots > 0;
 
         public virtual ICollection<ParkingReservation>? ParkingReservations { get; set; }
