@@ -4,6 +4,7 @@ using FitnessCenter1.Entities;
 using FitnessCenter1.Services.Abstract;
 using FitnessCenter1.Services;
 using FitnessCenter1.Configurations;
+using System.Runtime.InteropServices;
 
 
 class Program
@@ -67,7 +68,9 @@ class Program
                 new RestaurantMenu { Name = "Smoothie", Description = "Fruit smoothie", Price = 7, Category = "Female" },
                 new RestaurantMenu { Name = "Coffee", Description = "Premium coffee", Price = 5, Category = "Both" },
                 new RestaurantMenu { Name = "Tea", Description = "Herbal tea", Price = 3, Category = "Both" },
-                new RestaurantMenu { Name = "Jam", Description = "Traditional jam", Price = 6, Category = "Both", IsSpecialOffer = true, SpecialOfferPrice = 4 }
+                new RestaurantMenu { Name = "Pure", Description = "Boiled and smashed potatoes with salt and pepper.", Price = 8, Category = "Both", IsSpecialOffer = true, SpecialOfferPrice = 4 },
+                new RestaurantMenu { Name = "Fish", Description = "Khal khal style grilled", Price = 30, Category = "Both", IsSpecialOffer = true, SpecialOfferPrice = 4 },
+                new RestaurantMenu { Name = "Jam", Description = "Anjir jam", Price = 5, Category = "Both", IsSpecialOffer = true, SpecialOfferPrice = 4 }
             });
         }
 
@@ -260,7 +263,6 @@ class Program
         try
         {
             var user = await userService.RegisterUser(name, surname, username, password, email, gender, isCar, initialMoney);
-
             Console.WriteLine($"\nOTP code has benn sent succesfully to your email.");
 
             Console.Write("Enter OTP verification code : ");
@@ -314,30 +316,34 @@ class Program
             switch (choice)
             {
                 case "1":
-                    Console.WriteLine("nSauna using...");
-                    Thread.Sleep(2);
+                    Console.Clear();
+                    Console.WriteLine("Sauna using...");
+                    Thread.Sleep(2000);
                     Console.Clear();
                     Console.WriteLine("\nSauna used successfully!");
                     await UseFitnessProgram(user, 1, fitnessService);
                     break;
 
                 case "2":
+                    Console.Clear();
                     Console.WriteLine("Jacuzzi using...");
-                    Thread.Sleep(2);
+                    Thread.Sleep(2000);
                     Console.Clear();
                     Console.WriteLine("\nJacuzzi used successfully!");
                     await UseFitnessProgram(user, 2, fitnessService);
                     break;
                 case "3":
+                    Console.Clear();
                     Console.WriteLine("Fitness using...");
-                    Thread.Sleep(2);
+                    Thread.Sleep(2000);
                     Console.Clear();
                     Console.WriteLine("\nFitness used successfully!");
                     await UseFitnessProgram(user, 3, fitnessService);
                     break;
                 case "4":
+                    Console.Clear();
                     Console.WriteLine("Massage room using...");
-                    Thread.Sleep(2);
+                    Thread.Sleep(2000);
                     Console.Clear();
                     Console.WriteLine("\nMassage room used successfully!");
                     await UseFitnessProgram(user, 4, fitnessService);
@@ -409,36 +415,41 @@ class Program
             switch (choice)
             {
                 case "1":
+                    Console.Clear();
                     Console.WriteLine("Pilates using...");
-                    Thread.Sleep(2);
+                    Thread.Sleep(2000);
                     Console.Clear();
                     Console.WriteLine("\nPilates used successfully!");
                     await UseFitnessProgram(user, 1, fitnessService);
                     break;
                 case "2":
+                    Console.Clear();
                     Console.WriteLine("Yoga using...");
-                    Thread.Sleep(2);
+                    Thread.Sleep(2000);
                     Console.Clear();
                     Console.WriteLine("\nYoga used successfully!");
                     await UseFitnessProgram(user, 2, fitnessService);
                     break;
                 case "3":
+                    Console.Clear();
                     Console.WriteLine("Gym using...");
-                    Thread.Sleep(2);
+                    Thread.Sleep(2000);
                     Console.Clear();
                     Console.WriteLine("\nGym used successfully!");
                     await UseFitnessProgram(user, 3, fitnessService);
                     break;
                 case "4":
+                    Console.Clear();
                     Console.WriteLine("Swimming pool using...");
-                    Thread.Sleep(2);
+                    Thread.Sleep(2000);
                     Console.Clear();
                     Console.WriteLine("\nJacuzzi used successfully!");
                     await UseFitnessProgram(user, 4, fitnessService);
                     break;
                 case "5":
-                    Console.WriteLine("");
-                    Thread.Sleep(2);
+                    Console.Clear();
+                    Console.WriteLine("Swimming pool using...");
+                    Thread.Sleep(2000);
                     Console.Clear();
                     Console.WriteLine("\nSwimming pool used successfully!");
                     await UseFitnessProgram(user, 5, fitnessService);
@@ -488,7 +499,7 @@ class Program
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"\nProgram cannot be used: {ex.Message}");
+            Console.WriteLine("");
             Thread.Sleep(2000);
         }
     }
