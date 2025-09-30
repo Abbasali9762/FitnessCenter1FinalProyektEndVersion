@@ -243,30 +243,61 @@ class Program
     {
         Console.Clear();
         Console.WriteLine("=== Registration ===");
-        Console.Write("Name: ");
-        var name = Console.ReadLine();
-        Console.Write("Surname: ");
-        var surname = Console.ReadLine();
-        Console.Write("Username: ");
-        var username = Console.ReadLine();
-        Console.Write("Password: ");
-        var password = Console.ReadLine();
-        Console.Write("Email: ");
-        var email = Console.ReadLine();
-        Console.Write("Gender (Male/Female): ");
-        var gender = Console.ReadLine();
-        Console.Write("Do you have a car? (yes/no): ");
-        bool isCar = Console.ReadLine().ToLower() == "yes";
-        Console.Write("Initial balance: ");
-        decimal initialMoney = decimal.Parse(Console.ReadLine());
 
         try
         {
-            var user = await userService.RegisterUser(name, surname, username, password, email, gender, isCar, initialMoney);
-            Console.WriteLine($"\nOTP code has benn sent succesfully to your email.");
+            Console.Write("Name: ");
+            var name = Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(name))
+                throw new ArgumentException("Name cannot be empty or whitespace.");
 
-            Console.Write("Enter OTP verification code : ");
+            Console.Write("Surname: ");
+            var surname = Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(surname))
+                throw new ArgumentException("Surname cannot be empty or whitespace.");
+
+            Console.Write("Username: ");
+            var username = Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(username))
+                throw new ArgumentException("Username cannot be empty or whitespace.");
+
+            Console.Write("Password: ");
+            var password = Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(password))
+                throw new ArgumentException("Password cannot be empty or whitespace.");
+
+            Console.Write("Email: ");
+            var email = Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(email))
+                throw new ArgumentException("Email cannot be empty or whitespace.");
+
+            Console.Write("Gender (Male/Female): ");
+            var gender = Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(gender))
+                throw new ArgumentException("Gender cannot be empty or whitespace.");
+
+            Console.Write("Do you have a car? (yes/no): ");
+            var carInput = Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(carInput))
+                throw new ArgumentException("Car information cannot be empty or whitespace.");
+
+            bool isCar = carInput.ToLower() == "yes";
+
+            Console.Write("Initial balance: ");
+            var balanceInput = Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(balanceInput))
+                throw new ArgumentException("Initial balance cannot be empty or whitespace.");
+
+            decimal initialMoney = decimal.Parse(balanceInput);
+
+            var user = await userService.RegisterUser(name, surname, username, password, email, gender, isCar, initialMoney);
+            Console.WriteLine($"\nOTP code has been sent successfully to your email.");
+
+            Console.Write("Enter OTP verification code: ");
             string enteredOtp = Console.ReadLine();
+
+            if (string.IsNullOrWhiteSpace(enteredOtp))
+                throw new ArgumentException("OTP cannot be empty or whitespace.");
 
             if (await userService.VerifyOTP(email, enteredOtp))
             {
@@ -279,6 +310,16 @@ class Program
             }
 
             Thread.Sleep(2500);
+        }
+        catch (ArgumentException ex)
+        {
+            Console.WriteLine($"\nValidation error: {ex.Message}");
+            Thread.Sleep(2000);
+        }
+        catch (FormatException)
+        {
+            Console.WriteLine("\nInvalid format for initial balance. Please enter a valid number.");
+            Thread.Sleep(2000);
         }
         catch (Exception ex)
         {
